@@ -395,7 +395,7 @@ namespace interrupt {
                     key = "R";
                 break;
             default:
-                console->print("Spellslot %i", (int) slot);
+                //console->print("Spellslot %i", (int) slot);
                 break;
             }
             realStartTime = active->get_time();

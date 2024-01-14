@@ -48,11 +48,16 @@ namespace vayne {
 		auto interruptMenu = mainMenuTab->add_tab("interrupt", "Interrupt Settings");
 		interruptSettings::useE = interruptMenu->add_checkbox("useE", "Use E to interrupt", true);
 
-
-		interruptSettings::db = interruptMenu->add_tab("db", "Spell Importance");
+		/*Either this
+		interruptSettings::db = interruptMenu->add_tab("db", "Interruptable Spells");
 
 		// This is the important line, this initializes the menu, and the menu needs to exit to compare the importance values
 		interrupt::InitializeCancelMenu(interruptSettings::db, true, 2);
+
+		*/
+		// Or this
+		interruptMenu->add_separator("sep1", "");
+		interrupt::InitializeCancelMenu(interruptMenu, true, 2);
 
 		event_handler<events::on_update>::add_callback(on_update);
 	}
