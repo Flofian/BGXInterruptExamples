@@ -3,7 +3,7 @@
 // Please check out the examples at https://github.com/Flofian/BGXInterrupt 
 // Credits are appreciated, but you can remove the last line in the InitializeCancelMenu function if you want to remove them
 
-namespace interrupt {
+namespace InterruptDB {
     struct interruptableSpell {
         float minRemainingTime;
         float maxRemainingTime;

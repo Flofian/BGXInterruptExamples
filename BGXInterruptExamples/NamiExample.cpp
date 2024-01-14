@@ -23,7 +23,7 @@ namespace nami {
 
 			// ... and if they are "interruptable" and are casting an important Spell ...
 			if (!enemy || enemy->is_dead() || enemy->get_is_cc_immune() || enemy->is_zombie()) return;
-			auto data = interrupt::getInterruptable(enemy);
+			auto data = InterruptDB::getInterruptable(enemy);
 			if (data.dangerLevel <= 0) continue;
 
 			// ... I first try to use Q to interrupt ...
@@ -36,7 +36,7 @@ namespace nami {
 					// then I cast Q and return, since i cant cast 2 spells at once
 					q->cast(pred.get_cast_position());
 					myhero->print_chat(0, "Casted Q to interrupt %s with danger %i and %f time left", 
-						interrupt::getDisplayName(enemy).c_str(), data.dangerLevel, data.expectedRemainingTime);
+						InterruptDB::getDisplayName(enemy).c_str(), data.dangerLevel, data.expectedRemainingTime);
 					return;
 				}
 			}
@@ -53,7 +53,7 @@ namespace nami {
 				if (pred.hitchance >= hit_chance::low && data.dangerLevel >= 3 && data.expectedRemainingTime >= r->delay + expectedTravelTime) {
 					q->cast(pred.get_cast_position());
 					myhero->print_chat(0, "Casted R to interrupt %s with danger %i and %f time left",
-						interrupt::getDisplayName(enemy).c_str(), data.dangerLevel, data.expectedRemainingTime);
+						InterruptDB::getDisplayName(enemy).c_str(), data.dangerLevel, data.expectedRemainingTime);
 					return;
 				}
 			}
@@ -76,7 +76,7 @@ namespace nami {
 		interruptSettings::db = interruptMenu->add_tab("db", "Spell Importance");
 
 		// This is the important line, this initializes the menu, and the menu needs to exit to compare the importance values
-		interrupt::InitializeCancelMenu(interruptSettings::db);
+		InterruptDB::InitializeCancelMenu(interruptSettings::db, true);
 
 		event_handler<events::on_update>::add_callback(on_update);
 	}

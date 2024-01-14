@@ -23,7 +23,7 @@ namespace vayne {
 
 				// ... and if they are "interruptable" ...
 				if (!enemy || enemy->is_dead() || enemy->get_is_cc_immune() || enemy->is_zombie()) return;
-				auto data = interrupt::getInterruptable(enemy);
+				auto data = InterruptDB::getInterruptable(enemy);
 
 				float estimatedTravelTime = myhero->get_distance(enemy) / 2200.f + 0.25f;	// Vayne E Missile Speed + Cast Time
 
@@ -33,7 +33,7 @@ namespace vayne {
 					// then I cast E and return, since i cant cast 2 spells at once
 					e->cast(enemy);
 					myhero->print_chat(0, "Casted E to interrupt %s with %f time left",
-						interrupt::getDisplayName(enemy).c_str(), data.expectedRemainingTime);
+						InterruptDB::getDisplayName(enemy).c_str(), data.expectedRemainingTime);
 					return;
 				}
 				
@@ -48,16 +48,19 @@ namespace vayne {
 		auto interruptMenu = mainMenuTab->add_tab("interrupt", "Interrupt Settings");
 		interruptSettings::useE = interruptMenu->add_checkbox("useE", "Use E to interrupt", true);
 
-		/*Either this
+		//Either this
 		interruptSettings::db = interruptMenu->add_tab("db", "Interruptable Spells");
 
 		// This is the important line, this initializes the menu, and the menu needs to exit to compare the importance values
-		interrupt::InitializeCancelMenu(interruptSettings::db, true, 2);
+		InterruptDB::InitializeCancelMenu(interruptSettings::db, false, 2);
 
-		*/
+		/*
 		// Or this
 		interruptMenu->add_separator("sep1", "");
-		interrupt::InitializeCancelMenu(interruptMenu, true, 2);
+		// This is the important line, this initializes the menu, and the menu needs to exit to compare the importance values
+		InterruptDB::InitializeCancelMenu(interruptMenu, true, 2);
+*/
+
 
 		event_handler<events::on_update>::add_callback(on_update);
 	}

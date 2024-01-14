@@ -1,6 +1,6 @@
 #include "../plugin_sdk/plugin_sdk.hpp"
 #include "Interrupt.h"
-namespace interrupt {
+namespace InterruptDB {
     std::map<std::string, TreeEntry*> menuMap;
     bool useSmallMenu = false;
     int boolMenuMinImportance = -1;
@@ -129,7 +129,7 @@ namespace interrupt {
                 menuMap[model + key] = t->add_slider(model + key, "[" + key + "] - " + spellName, defaultValue, 0, 3, true);
             }
             else {
-                menuMap[model + key] = tab->add_checkbox(model + key, "[" + key + "] - " + spellName, defaultValue >= boolMenuMinImportance, true);
+                menuMap[model + key] = t->add_checkbox(model + key, "[" + key + "] - " + spellName, defaultValue >= boolMenuMinImportance, true);
                 menuMap[model + key]->set_texture(texture);
             }
         }
