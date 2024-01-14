@@ -1,4 +1,4 @@
-#include "plugin_sdk/plugin_sdk.hpp"
+#include "../plugin_sdk/plugin_sdk.hpp"
 #include "VayneExample.h"
 
 namespace vayne {

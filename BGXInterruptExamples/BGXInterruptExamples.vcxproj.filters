@@ -13,21 +13,54 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="framework.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="pch.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
+    <Filter Include="Source Files\SDK">
+      <UniqueIdentifier>{5ec08fef-ef74-41a9-81c0-f4a33d659e97}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="dllmain.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="pch.cpp">
+    <ClCompile Include="DebugUtil.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="NamiExample.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="VayneExample.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\plugin_sdk\clipper.cpp">
+      <Filter>Source Files\SDK</Filter>
+    </ClCompile>
+    <ClCompile Include="..\plugin_sdk\plugin_sdk.cpp">
+      <Filter>Source Files\SDK</Filter>
+    </ClCompile>
+    <ClCompile Include="Interrupt.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="DebugUtil.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="NamiExample.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="VayneExample.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\plugin_sdk\clipper.h">
+      <Filter>Source Files\SDK</Filter>
+    </ClInclude>
+    <ClInclude Include="..\plugin_sdk\cpplinq.h">
+      <Filter>Source Files\SDK</Filter>
+    </ClInclude>
+    <ClInclude Include="..\plugin_sdk\plugin_sdk.hpp">
+      <Filter>Source Files\SDK</Filter>
+    </ClInclude>
+    <ClInclude Include="Interrupt.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

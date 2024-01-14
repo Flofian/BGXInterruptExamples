@@ -1,4 +1,4 @@
-#include "plugin_sdk/plugin_sdk.hpp"
+#include "../plugin_sdk/plugin_sdk.hpp"
 #include "NamiExample.h"
 #include "VayneExample.h"
 #include "DebugUtil.h"

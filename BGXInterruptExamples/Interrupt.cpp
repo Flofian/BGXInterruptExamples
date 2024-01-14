@@ -1,4 +1,4 @@
-#include "plugin_sdk/plugin_sdk.hpp"
+#include "../plugin_sdk/plugin_sdk.hpp"
 #include "Interrupt.h"
 namespace interrupt {
     std::map<std::string, TreeEntry*> menuMap;
