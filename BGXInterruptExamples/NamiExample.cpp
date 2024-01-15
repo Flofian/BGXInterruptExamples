@@ -49,9 +49,8 @@ namespace nami {
 				float expectedTravelTime = pred.get_unit_position().distance(myhero) / r->get_speed();
 
 				// here i check if danger is at least 3, change to whatever you feel like for the spell you want to use
-				// and here i check for 
 				if (pred.hitchance >= hit_chance::low && data.dangerLevel >= 3 && data.expectedRemainingTime >= r->delay + expectedTravelTime) {
-					q->cast(pred.get_cast_position());
+					r->cast(pred.get_cast_position());
 					myhero->print_chat(0, "Casted R to interrupt %s with danger %i and %f time left",
 						InterruptDB::getDisplayName(enemy).c_str(), data.dangerLevel, data.expectedRemainingTime);
 					return;
