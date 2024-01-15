@@ -2,10 +2,15 @@
 #include "Interrupt.h"
 namespace InterruptDB {
     std::map<std::string, TreeEntry*> menuMap;
+    std::map<uint32_t, interruptableSpell> spellMap;
     bool useSmallMenu = false;
     int boolMenuMinImportance = -1;
-    auto rbuffhashes = { buff_hash("LucianR"), buff_hash("SamiraR"), buff_hash("RyzeRChannel"), buff_hash("Gate"), buff_hash("warwickrsound") };  // I hate this, also buff times are wrong, maybe need to use onProcessSpellCast
+    bool useAllies = false;
+    auto rbuffhashes = { buff_hash("LucianR"), buff_hash("SamiraR"), buff_hash("RyzeRChannel"), buff_hash("Gate") };  // I hate this, also buff times are wrong, maybe need to use onProcessSpellCast
+    std::map<uint32_t, float> animationStarttimes;
     std::map<std::string, internalSpellData> channelTime = { // I cant get every Spell via spelldata->channeltime
+        {"AurelionSolQ", internalSpellData(0,3.25,3.25,0)},
+        {"AurelionSolW", internalSpellData(0,0,0,0.4)},
         {"AkshanR", internalSpellData(0.5,2.5,2.5,0)},    // I will not do the calculations to find out how many he needs
         // Belveth E and Briar E are not interruptable
         {"CaitlynR", internalSpellData(1,1,1,0.375)},
@@ -135,10 +140,146 @@ namespace InterruptDB {
         }
     }
 
+    void on_update() {
+        auto l = useAllies ? entitylist->get_ally_heroes() : entitylist->get_enemy_heroes();
+        for (const auto& target: l){
+            interruptableSpell output = interruptableSpell();
+            if (!target || !target->is_valid() || !target->is_ai_hero()) {  // to fix rare crash that i cant reproduce
+                spellMap[target->get_handle()] = output;
+                continue;
+            } 
+            auto active = target->get_active_spell();
+            /*if (!active && !target->has_buff(rbuffhashes)) {
+                spellMap[target->get_handle()] = output;
+                continue;
+            }*/
+            std::string key = "?";
+            float realStartTime = -1;
+            // This split is needed since SamiraR, LucianR etc are not in activeSpell, they are only a buff
+            if (active) {
+                auto slot = active->get_spellslot();
+
+                switch (slot)
+                {
+                case spellslot::q:
+                    key = "Q";
+                    break;
+                case spellslot::w:
+                    key = "W";
+                    break;
+                case spellslot::e:
+                    key = "E";
+                    break;
+                case spellslot::r:
+                    // I exclude Warwick here, dont want to "interrupt" his jump, only the channel
+                    // So i ignore him if he uses r here
+                    if (target->get_champion() != champion_id::Warwick)
+                        key = "R";
+                    break;
+                case (spellslot)48:
+                    if (target->get_champion() == champion_id::Warwick)
+                        key = "R";
+                    break;
+                default:
+                    //console->print("Spellslot %i", (int) slot);
+                    break;
+                }
+                realStartTime = active->get_time();
+            }
+            if (target->has_buff(rbuffhashes)) {
+                // yeah i could just check buff endtime, but i will keep it like this
+                key = "R";
+                for (const auto buffhash : rbuffhashes) {
+                    auto b = target->get_buff(buffhash);
+                    if (b) realStartTime = b->get_start();
+                }
+            }
+            /*if (target->get_spell(spellslot::w)->get_name_hash() == spell_hash("AurelionSolWToggle") && target->is_playing_animation(buff_hash("Spell2"))) {
+                key = "W";
+                // i am not sure how i should get this?
+                realStartTime = gametime->get_time();
+            }*/
+            if (target->get_spell(spellslot::w)->get_name_hash() == spell_hash("AurelionSolWToggle")) {
+                key = "W";
+                auto b = target->get_buff(buff_hash("AurelionSolW"));
+                if (b) { 
+                    realStartTime = b->get_start() - 0.5;   // 0.5 instead of 0.4 since buffs are delayed
+                }
+            }
+
+
+            auto entity = menuMap.find(target->get_model() + key);
+            if (entity == menuMap.end()) {
+                spellMap[target->get_handle()] = output;
+                continue; 
+            }
+            if (boolMenuMinImportance == -1) {
+                output.dangerLevel = entity->second->get_int();
+            }
+            else {
+                output.dangerLevel = entity->second->get_bool();
+            }
+            auto spellListIter = channelTime.find(target->get_model() + key);
+            if (spellListIter == channelTime.end()) {
+                spellMap[target->get_handle()] = output;
+                continue;
+            }
+
+
+
+
+            float timeSinceStart = gametime->get_time() - realStartTime - spellListIter->second.castTime;
+            float expTimeLeft = spellListIter->second.expectedTime - timeSinceStart;
+            float minTimeLeft = spellListIter->second.minTime - timeSinceStart;
+            float maxTimeLeft = spellListIter->second.maxTime - timeSinceStart;
+
+
+            if (target->get_champion() == champion_id::AurelionSol && key == "Q") {
+                if (target->get_spell(spellslot::q)->level() == 5) maxTimeLeft = 100 - timeSinceStart;
+            }
+            if (target->get_champion() == champion_id::AurelionSol && key == "W") {
+                auto path = target->get_real_path();
+                if (path.size() > 1) {
+                    float travelDistanceLeft = path[1].distance(target);
+                    float normalFlightTimeLeft = travelDistanceLeft / (335 + target->get_move_speed());
+                    float qFlightTime = 2 * normalFlightTimeLeft;
+                    expTimeLeft = normalFlightTimeLeft;
+                    maxTimeLeft = qFlightTime;
+                }
+                else {
+                    auto passive = target->get_buff(buff_hash("AurelionSolPassive"));
+                    if (passive) {
+                        float travelDistance = 1200 + 7.5 * passive->get_count();
+                        float normalTime = travelDistance / (335 + target->get_move_speed());
+                        float qFlightTime = 2 * normalTime;
+                        expTimeLeft = normalTime - timeSinceStart;
+                        maxTimeLeft = qFlightTime - timeSinceStart;
+                    }
+                }
+                
+            }
+            const auto& tempBuff2 = target->get_buff(buff_hash("xerathrshots"));    // works okay
+            if (tempBuff2)
+                expTimeLeft = (tempBuff2->get_count() - 1) * 0.5;
+
+            if (target->get_champion() == champion_id::Zac)
+                expTimeLeft = 0.8 + 0.1 * target->get_spell(spellslot::e)->level() - timeSinceStart;
+
+            output.expectedRemainingTime = fmax(expTimeLeft, 0);
+            output.minRemainingTime = fmax(minTimeLeft, 0);
+            output.maxRemainingTime = fmax(maxTimeLeft, 0);
+
+
+            spellMap[target->get_handle()] = output;
+        }
+    }
     void InitializeCancelMenu(TreeTab* tab,bool smallMode, int boolMode, bool debugUseAllies)
     {
+        // dev.bgx.gg clearly says its not needed to remove callbacks, only recommended
+        event_handler<events::on_update>::add_callback(on_update);
         useSmallMenu = smallMode;
         boolMenuMinImportance = boolMode;
+        useAllies = debugUseAllies;
         std::vector<game_object_script> enemyList;
         if (debugUseAllies) {
             enemyList = entitylist->get_ally_heroes();
@@ -155,6 +296,10 @@ namespace InterruptDB {
 
 
             switch (id) {
+            case champion_id::AurelionSol:
+                InitiateSlot(tab, e, spellslot::q, "Aurelion Sol", "Breath of Light", 1);
+                InitiateSlot(tab, e, spellslot::w, "Aurelion Sol", "Astral Flight", 0);
+                break;
             case champion_id::Akshan:
                 InitiateSlot(tab, e, spellslot::r, "Akshan", "Comeuppance", 2);
                 break;
@@ -325,122 +470,16 @@ namespace InterruptDB {
     }
     int getCastingImportance(game_object_script target)
     {
-        auto active = target->get_active_spell();
-        if (!active)
-            return 0;
-        auto slot = active->get_spellslot();
-
-        std::string key = "?";
-
-        switch (slot)
-        {
-        case spellslot::q:
-            key = "Q";
-            break;
-        case spellslot::w:
-            key = "W";
-            break;
-        case spellslot::e:
-            key = "E";
-            break;
-        case spellslot::r:
-            // I exclude Warwick here, dont want to "interrupt" his jump, only the channel
-            // So i ignore his R Active Spell, but check for the effect below
-            if (target->get_champion() != champion_id::Warwick)
-                key = "R";
-            break;
-        default:
-            break;
+        if (spellMap.find(target->get_handle()) != spellMap.end()) {
+            return spellMap[target->get_handle()].dangerLevel;
         }
-        if (target->has_buff(rbuffhashes)) key = "R";
-
-        auto entity = menuMap.find(target->get_model() + key);
-        if (entity == menuMap.end())
-            return 0;
-        if (boolMenuMinImportance == -1) {
-            return entity->second->get_int();
-        }
-        else {
-            return entity->second->get_bool();
-        }
+        return -1;
     }
 
     interruptableSpell getInterruptable(game_object_script target) {
-        interruptableSpell output = interruptableSpell();
-        if (!target || !target->is_valid() || !target->is_ai_hero()) return output; // to fix rare crash that i cant reproduce
-        auto active = target->get_active_spell();
-        if (!active && !target->has_buff(rbuffhashes))
-            return output;
-        std::string key = "?";
-        float realStartTime = -1;
-        // This split is needed since SamiraR, LucianR etc are not in activeSpell, they are only a buff
-        if (active) {   
-            auto slot = active->get_spellslot();
-
-            switch (slot)
-            {
-            case spellslot::q:
-                key = "Q";
-                break;
-            case spellslot::w:
-                key = "W";
-                break;
-            case spellslot::e:
-                key = "E";
-                break;
-            case spellslot::r:
-            // I exclude Warwick here, dont want to "interrupt" his jump, only the channel
-            // So i ignore him if he uses r here
-                if (target->get_champion() != champion_id::Warwick)
-                    key = "R";
-                break;
-            default:
-                //console->print("Spellslot %i", (int) slot);
-                break;
-            }
-            realStartTime = active->get_time();
+        if (spellMap.find(target->get_handle()) != spellMap.end()) {
+            return spellMap[target->get_handle()];
         }
-        if (target->has_buff(rbuffhashes)) {
-            // yeah i could just check buff endtime, but i will keep it like this
-            key = "R";
-            for (const auto buffhash : rbuffhashes) {
-                auto b = target->get_buff(buffhash);
-                if (b) realStartTime = b->get_start();
-            }
-        }
-
-
-        auto entity = menuMap.find(target->get_model() + key);
-        if (entity == menuMap.end()) return output;
-        if (boolMenuMinImportance == -1) {
-            output.dangerLevel = entity->second->get_int();
-        }
-        else {
-            output.dangerLevel = entity->second->get_bool();
-        }
-        auto spellListIter = channelTime.find(target->get_model() + key);
-        if (spellListIter == channelTime.end()) return output;
-        
-        
-
-        
-        float timeSinceStart = gametime->get_time() - realStartTime - spellListIter->second.castTime;
-        float expTimeLeft = spellListIter->second.expectedTime - timeSinceStart;
-        float minTimeLeft = spellListIter->second.minTime - timeSinceStart;
-        float maxTimeLeft = spellListIter->second.maxTime - timeSinceStart;
-
-        const auto& tempBuff2 = target->get_buff(buff_hash("xerathrshots"));    // works okay
-        if (tempBuff2)
-            expTimeLeft = (tempBuff2->get_count() - 1)*0.5;
-
-        if (target->get_champion() == champion_id::Zac)
-            expTimeLeft = 0.8 + 0.1 * target->get_spell(spellslot::e)->level() - timeSinceStart;
-
-        output.expectedRemainingTime = fmax(expTimeLeft, 0);
-        output.minRemainingTime = fmax(minTimeLeft, 0);
-        output.maxRemainingTime = fmax(maxTimeLeft, 0);
-
-
-        return output;
+        return interruptableSpell();
     }
 }
